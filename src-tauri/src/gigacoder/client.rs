@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::HashSet, error::Error};
+use std::{collections::HashSet, error::Error};
 
 use reqwest::{Client, ClientBuilder, Error as ReqwestError, Proxy, StatusCode};
 use serde_json::json;
@@ -195,7 +195,7 @@ pub fn openai_models_for_login(
         .filter(|model| !model.is_empty())
         .collect();
 
-    let mut openai_models = normalized
+    normalized
         .into_iter()
         .filter(|model| is_codex_text_model(model))
         .filter(|model| {
@@ -207,9 +207,7 @@ pub fn openai_models_for_login(
                 looks_like_openai_model(model)
             }
         })
-        .collect::<Vec<_>>();
-    sort_model_names_desc(&mut openai_models);
-    openai_models
+        .collect()
 }
 
 fn normalize_models(models: Vec<String>) -> Vec<String> {
@@ -238,78 +236,6 @@ fn looks_like_openai_model(model: &str) -> bool {
 
 fn is_codex_text_model(model: &str) -> bool {
     !model.trim().to_ascii_lowercase().starts_with("gpt-image")
-}
-
-fn sort_model_names_desc(models: &mut [String]) {
-    models.sort_by(|left, right| compare_model_names_desc(left, right));
-}
-
-fn compare_model_names_desc(left: &str, right: &str) -> Ordering {
-    let left = left.to_ascii_lowercase();
-    let right = right.to_ascii_lowercase();
-    let mut left_index = 0;
-    let mut right_index = 0;
-
-    loop {
-        if left_index >= left.len() && right_index >= right.len() {
-            return Ordering::Equal;
-        }
-        if left_index >= left.len() {
-            return Ordering::Less;
-        }
-        if right_index >= right.len() {
-            return Ordering::Greater;
-        }
-
-        let left_is_digit = left.as_bytes()[left_index].is_ascii_digit();
-        let right_is_digit = right.as_bytes()[right_index].is_ascii_digit();
-
-        if left_is_digit && right_is_digit {
-            let (left_segment, next_left) = digit_segment(&left, left_index);
-            let (right_segment, next_right) = digit_segment(&right, right_index);
-            let ordering = compare_digit_segments_desc(left_segment, right_segment);
-            if ordering != Ordering::Equal {
-                return ordering;
-            }
-            left_index = next_left;
-            right_index = next_right;
-            continue;
-        }
-
-        let (left_segment, next_left) = text_segment(&left, left_index);
-        let (right_segment, next_right) = text_segment(&right, right_index);
-        let ordering = left_segment.cmp(right_segment);
-        if ordering != Ordering::Equal {
-            return ordering;
-        }
-        left_index = next_left;
-        right_index = next_right;
-    }
-}
-
-fn digit_segment(value: &str, start: usize) -> (&str, usize) {
-    let end = value[start..]
-        .find(|character: char| !character.is_ascii_digit())
-        .map(|offset| start + offset)
-        .unwrap_or(value.len());
-    (&value[start..end], end)
-}
-
-fn text_segment(value: &str, start: usize) -> (&str, usize) {
-    let end = value[start..]
-        .find(|character: char| character.is_ascii_digit())
-        .map(|offset| start + offset)
-        .unwrap_or(value.len());
-    (&value[start..end], end)
-}
-
-fn compare_digit_segments_desc(left: &str, right: &str) -> Ordering {
-    let left = left.trim_start_matches('0');
-    let right = right.trim_start_matches('0');
-    match left.len().cmp(&right.len()) {
-        Ordering::Equal => right.cmp(left),
-        other => other.reverse(),
-    }
 }
 
 fn describe_http_error(error: ReqwestError) -> AppError {
@@ -424,8 +350,25 @@ mod tests {
 
         assert_eq!(
             openai,
-            vec!["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex"]
+            vec!["gpt-5.3-codex", "gpt-5.4", "gpt-5.4-mini", "gpt-5.5"]
         );
+    }
+
+    #[test]
+    fn openai_models_preserve_login_model_order() {
+        let platforms = vec![PlatformSummary {
+            code: "openai".to_string(),
+            name: "OpenAI".to_string(),
+        }];
+        let models = vec![
+            "gpt-5.4-mini".to_string(),
+            "gpt-5.5".to_string(),
+            "gpt-5.3-codex".to_string(),
+        ];
+
+        let openai = openai_models_for_login(&platforms, &models, &[]);
+
+        assert_eq!(openai, vec!["gpt-5.4-mini", "gpt-5.5", "gpt-5.3-codex"]);
     }
 
     #[test]

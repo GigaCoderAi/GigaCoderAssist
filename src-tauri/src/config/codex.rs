@@ -22,6 +22,7 @@ pub fn write_codex_config(
         fs::create_dir_all(parent)?;
     }
     let normalized_models = normalize_model_list(openai_models);
+    let default_model = first_codex_text_model(openai_models).unwrap_or("gpt-5.4");
 
     let config_created = !config_path.exists();
     let auth_created = !auth_path.exists();
@@ -38,7 +39,7 @@ pub fn write_codex_config(
     };
 
     doc["model_provider"] = value("OpenAI");
-    doc["model"] = value("gpt-5.4");
+    doc["model"] = value(default_model);
     doc["review_model"] = value("gpt-5.4");
     doc["model_reasoning_effort"] = value("xhigh");
     doc["disable_response_storage"] = value(true);
@@ -121,6 +122,13 @@ fn normalize_model_list(models: &[String]) -> Vec<String> {
     }
     sort_model_names_desc(&mut normalized);
     normalized
+}
+
+fn first_codex_text_model(models: &[String]) -> Option<&str> {
+    models.iter().find_map(|model| {
+        let trimmed = model.trim();
+        (!trimmed.is_empty() && is_codex_text_model(trimmed)).then_some(trimmed)
+    })
 }
 
 fn build_custom_model_catalog(models: &[String]) -> Value {
@@ -353,6 +361,30 @@ mod tests {
     }
 
     #[test]
+    fn uses_first_openai_model_as_codex_default_model() {
+        let home = tempdir().expect("tempdir");
+
+        write_codex_config(
+            home.path(),
+            "gc_test_key",
+            &[
+                "gpt-5.4-mini".to_string(),
+                "gpt-5.5".to_string(),
+                "gpt-5.3-codex".to_string(),
+            ],
+        )
+        .expect("write codex");
+
+        let config_path = home.path().join(".codex").join("config.toml");
+        let config = fs::read_to_string(config_path)
+            .expect("read config")
+            .parse::<DocumentMut>()
+            .expect("toml");
+        assert_eq!(config["model"].as_str(), Some("gpt-5.4-mini"));
+        assert_eq!(config["review_model"].as_str(), Some("gpt-5.4"));
+    }
+
+    #[test]
     fn removes_model_catalog_config_when_openai_models_are_empty() {
         let home = tempdir().expect("tempdir");
         let codex_dir = home.path().join(".codex");
@@ -371,5 +403,6 @@ mod tests {
             .parse::<DocumentMut>()
             .expect("toml");
         assert!(config.as_table().get("model_catalog_json").is_none());
+        assert_eq!(config["model"].as_str(), Some("gpt-5.4"));
     }
 }

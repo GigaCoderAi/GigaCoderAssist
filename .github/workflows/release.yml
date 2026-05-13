@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows
+            os: windows-latest
+            rust-target: x86_64-pc-windows-msvc
+            tauri-args: "--bundles nsis"
+          - label: macOS Intel
+            os: macos-15-intel
+            rust-target: x86_64-apple-darwin
+            tauri-args: "--target x86_64-apple-darwin --bundles dmg"
+          - label: macOS Apple Silicon
+            os: macos-15
+            rust-target: aarch64-apple-darwin
+            tauri-args: "--target aarch64-apple-darwin --bundles dmg"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-target }}
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and publish release assets
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "GigaCoderAssist ${{ github.ref_name }}"
+          releaseBody: "Automated release for ${{ github.ref_name }}."
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.tauri-args }}

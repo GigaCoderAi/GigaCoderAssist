@@ -112,11 +112,11 @@ src-tauri/target/release/bundle/dmg/
 Releases are triggered by pushing a version tag:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
-The release workflow syncs package metadata from the pushed tag before building, so a `v0.1.0` tag produces `0.1.0` app packages.
+The release workflow syncs package metadata from the pushed tag before building, so a `v0.1.1` tag produces `0.1.1` app packages.
 
 The GitHub Actions workflow builds:
 

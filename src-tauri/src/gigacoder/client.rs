@@ -22,7 +22,7 @@ pub async fn login_and_fetch_keys(
     let openai_models = openai_models_for_login(&login.platforms, &login.models, &openai_catalog);
     Ok(LoginAndFetchKeysResponse {
         user_email: login.user.email,
-        keys: selectable_keys(vec![login.api_key]),
+        keys: selectable_keys_for_login(login.api_key, login.api_keys),
         platforms: login.platforms,
         models: normalize_models(login.models),
         openai_models,
@@ -154,6 +154,18 @@ pub fn selectable_keys(keys: Vec<ApiKeyPayload>) -> Vec<ApiKeySummary> {
             })
         })
         .collect()
+}
+
+fn selectable_keys_for_login(
+    default_key: ApiKeyPayload,
+    api_keys: Vec<ApiKeyPayload>,
+) -> Vec<ApiKeySummary> {
+    let keys = if api_keys.is_empty() {
+        vec![default_key]
+    } else {
+        api_keys
+    };
+    selectable_keys(keys)
 }
 
 pub fn mask_key(raw_key: &str) -> String {
@@ -371,6 +383,20 @@ mod tests {
         assert_eq!(keys.len(), 1);
         assert_eq!(keys[0].id, "1");
         assert_eq!(keys[0].raw_key, "gc_1234567890abcdef");
+    }
+
+    #[test]
+    fn selectable_keys_for_login_prefers_api_key_list() {
+        let keys = selectable_keys_for_login(
+            key("default", "active", Some("gc_default"), Some(true)),
+            vec![
+                key("1", "active", Some("gc_1234567890abcdef"), Some(true)),
+                key("2", "inactive", Some("gc_inactive"), Some(true)),
+            ],
+        );
+
+        assert_eq!(keys.len(), 1);
+        assert_eq!(keys[0].id, "1");
     }
 
     #[test]

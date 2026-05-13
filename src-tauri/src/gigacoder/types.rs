@@ -47,6 +47,8 @@ pub struct ExternalLoginResponse {
     pub user: UserPayload,
     pub api_key: ApiKeyPayload,
     #[serde(default)]
+    pub api_keys: Vec<ApiKeyPayload>,
+    #[serde(default)]
     pub platforms: Vec<PlatformSummary>,
     #[serde(default)]
     pub models: Vec<String>,

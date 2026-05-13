@@ -62,6 +62,17 @@ test('syncs package metadata to the release tag version', async () => {
   assert.match(await readFile(path.join(root, 'src-tauri', 'Cargo.lock'), 'utf8'), /version = "0\.1\.0"/)
 })
 
+test('succeeds when cargo metadata already matches the release tag', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'release-version-'))
+  await writeFixture(root)
+
+  await syncReleaseVersion({ root, tag: 'v0.1.0' })
+  await syncReleaseVersion({ root, tag: 'v0.1.0' })
+
+  assert.match(await readFile(path.join(root, 'src-tauri', 'Cargo.toml'), 'utf8'), /version = "0\.1\.0"/)
+  assert.match(await readFile(path.join(root, 'src-tauri', 'Cargo.lock'), 'utf8'), /version = "0\.1\.0"/)
+})
+
 test('rejects tags that are not v-prefixed semantic versions', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'release-version-'))
   await writeFixture(root)

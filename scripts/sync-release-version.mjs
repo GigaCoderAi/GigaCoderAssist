@@ -23,13 +23,11 @@ async function updateJsonVersion(file, version, updateRootPackage = false) {
 
 async function updateCargoTomlVersion(file, version) {
   const content = await readFile(file, 'utf8')
-  const updated = content.replace(
-    /(^\[package\][\s\S]*?^version\s*=\s*)"[^"]+"/m,
-    `$1"${version}"`,
-  )
-  if (updated === content) {
+  const packageVersion = /(^\[package\][\s\S]*?^version\s*=\s*)"[^"]+"/m
+  if (!packageVersion.test(content)) {
     throw new Error(`Could not find [package] version in ${file}`)
   }
+  const updated = content.replace(packageVersion, `$1"${version}"`)
   await writeFile(file, updated)
 }
 
@@ -38,10 +36,10 @@ async function updateCargoLockVersion(file, packageName, version) {
   const packageBlock = new RegExp(
     `(\\[\\[package\\]\\]\\nname = "${packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\nversion = )"[^"]+"`,
   )
-  const updated = content.replace(packageBlock, `$1"${version}"`)
-  if (updated === content) {
+  if (!packageBlock.test(content)) {
     throw new Error(`Could not find ${packageName} in ${file}`)
   }
+  const updated = content.replace(packageBlock, `$1"${version}"`)
   await writeFile(file, updated)
 }
 

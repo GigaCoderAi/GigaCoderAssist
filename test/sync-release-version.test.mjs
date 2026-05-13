@@ -73,6 +73,19 @@ test('succeeds when cargo metadata already matches the release tag', async () =>
   assert.match(await readFile(path.join(root, 'src-tauri', 'Cargo.lock'), 'utf8'), /version = "0\.1\.0"/)
 })
 
+test('syncs cargo lock files checked out with windows newlines', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'release-version-'))
+  await writeFixture(root)
+  await writeFile(
+    path.join(root, 'src-tauri', 'Cargo.lock'),
+    'version = 4\r\n\r\n[[package]]\r\nname = "gigacoder-config-assistant"\r\nversion = "0.1.1"\r\n',
+  )
+
+  await syncReleaseVersion({ root, tag: 'v0.1.0' })
+
+  assert.match(await readFile(path.join(root, 'src-tauri', 'Cargo.lock'), 'utf8'), /version = "0\.1\.0"/)
+})
+
 test('rejects tags that are not v-prefixed semantic versions', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'release-version-'))
   await writeFixture(root)

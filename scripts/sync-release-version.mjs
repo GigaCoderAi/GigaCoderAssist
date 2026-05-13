@@ -33,8 +33,9 @@ async function updateCargoTomlVersion(file, version) {
 
 async function updateCargoLockVersion(file, packageName, version) {
   const content = await readFile(file, 'utf8')
+  const newline = content.includes('\r\n') ? '\\r?\\n' : '\\n'
   const packageBlock = new RegExp(
-    `(\\[\\[package\\]\\]\\nname = "${packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\nversion = )"[^"]+"`,
+    `(\\[\\[package\\]\\]${newline}name = "${packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"${newline}version = )"[^"]+"`,
   )
   if (!packageBlock.test(content)) {
     throw new Error(`Could not find ${packageName} in ${file}`)

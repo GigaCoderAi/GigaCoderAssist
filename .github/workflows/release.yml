@@ -47,6 +47,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Sync package version from tag
+        run: npm run release:sync-version -- ${{ github.ref_name }}
+
       - name: Build and publish release assets
         uses: tauri-apps/tauri-action@v0
         env:

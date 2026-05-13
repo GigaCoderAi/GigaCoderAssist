@@ -1,6 +1,6 @@
 [package]
 name = "gigacoder-config-assistant"
-version = "0.1.1"
+version = "0.1.0"
 description = "GigaCoder Codex and Claude Code configuration assistant"
 authors = ["GigaCoder"]
 edition = "2021"

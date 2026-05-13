@@ -1,11 +1,13 @@
 {
   "name": "gigacoder-config-assistant",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
+    "release:sync-version": "node scripts/sync-release-version.mjs",
+    "test:release-version": "node --test test/sync-release-version.test.mjs",
     "tauri": "tauri"
   },
   "dependencies": {
